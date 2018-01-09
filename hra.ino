@@ -10,7 +10,6 @@ konstanta krokZrychlovani = 50; // ms - dioda bliká s lineárním zrychlením, 
 konstanta nejmensiCas = 200; //ms - nejmenší čas, který dioda svítí. Pod toto nejde nezávisle na score
 konstanta kladneBody = 1; // o kolik bodů se zvýší score při trefě do svitu diody
 konstanta nasobitelZaporneBody = 3; // body budes ztracet 3x rychleji nez ziskavat
-konstanta okamzik = 16000;  // kolik mikrosekund čekat po zmáčknutí tlačítka (ochrana proti zákmitům)
 cas periodaKontrolyTlacitka = 100; // ms - jak casto kontrolovat jestli je zmacknuto tlacitko
 
 // promenne
