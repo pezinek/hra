@@ -4,6 +4,7 @@
 
 #define kladne unsigned
 #define nezmenitelne const
+#define nezmenitelny const
 #define promenlive volatile
 #define promenlivy volatile
 #define cislo int

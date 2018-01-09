@@ -11,17 +11,33 @@ konstanta nejmensiCas = 200; //ms - nejmenší čas, který dioda svítí. Pod t
 konstanta kladneBody = 1; // o kolik bodů se zvýší score při trefě do svitu diody
 konstanta nasobitelZaporneBody = 3; // body budes ztracet 3x rychleji nez ziskavat
 konstanta okamzik = 16000;  // kolik mikrosekund čekat po zmáčknutí tlačítka (ochrana proti zákmitům)
+cas periodaKontrolyTlacitka = 100; // ms - jak casto kontrolovat jestli je zmacknuto tlacitko
 
-// tyto se nastavují z obsluhy přerušení
-promenlive cislo score = 0; // score na chvilku může klesout pod 0 - divné, ale mám tak udělané spíše pro jednoduchost kódu
-promenlive tvrzeni trefa = nepravda; // jestli se hráč trefil do svitu diody
-promenlive tvrzeni sviti = nepravda; // jestli dioda právě ted svítí
-promenlive cislo dobaSvitu = 1000; // v ms - doba svitu diody, zároveň je doba mezery blikání
-promenlivy cas lastMicros = 0; // pro podporu řešení zákmitů tlačítka
+// promenne
+cislo score = 0; // score na chvilku může klesout pod 0 - divné, ale mám tak udělané spíše pro jednoduchost kódu
+tvrzeni sviti = nepravda; // jestli dioda právě ted svítí
+cislo dobaSvitu = 1000; // v ms - doba svitu diody, zároveň je doba mezery blikání
+cas posledniKontrolaTlacitka = 0; // cas kdy se naposledy kontrolovalo zmacknuti tlacitka
+cislo posledniStavTlacitka = VYPNUTO;  // posledni znamy stav tlacitka
 
 
-procedura rozsvitDiodu() { zapni(pinBlikaciDiody); };
-procedura zhasniDiodu() { vypni(pinBlikaciDiody); };
+procedura rozsvitDiodu() { 
+  zapni(pinBlikaciDiody);
+  sviti = pravda;
+}
+
+procedura zhasniDiodu() { 
+  vypni(pinBlikaciDiody); 
+  sviti = nepravda;
+}
+
+procedura prepniDiodu() {
+  kdyz (sviti) {
+    zhasniDiodu();
+  } jinak {
+    rozsvitDiodu();
+  }
+}
 
 procedura zhasniScore () {
    for (cislo i=pinNejnizsiDiodaScore; i<=pinNejvyssiDiodaScore; i++) { vypni(i); };
@@ -50,8 +66,8 @@ procedura rozsvitScoreVeDvojkoveSoustave () {
 // druhá možnost jak ukázat score
 procedura rozsvitScoreJednouPosouvajiciSeDiodou () {
   zhasniScore();
-  konstanta maximalni_score = pinNejvyssiDiodaScore - pinNejnizsiDiodaScore;
-  kdyz (score > maximalni_score) {score = 1;};
+  konstanta maximalniScore = pinNejvyssiDiodaScore - pinNejnizsiDiodaScore;
+  kdyz (score > maximalniScore) {score = 1;};
   zapni(pinNejnizsiDiodaScore + score);
 }
 
@@ -60,7 +76,6 @@ procedura rozsvitScore () {
   //rozsvitScoreJednouPosouvajiciSeDiodou ();
   rozsvitScoreVeDvojkoveSoustave ();
 }
-
 
 // složitější  funkce, které už jsou k věci
 
@@ -76,8 +91,8 @@ procedura zapoctiTrefu() {
 }
 
 procedura zapoctiChybu() {
-  score = score - (kladneBody*nasobitelZaporneBody);
-  dobaSvitu = dobaSvitu + (krokZrychlovani*nasobitelZaporneBody);
+  score = score - (kladneBody * nasobitelZaporneBody);
+  dobaSvitu = dobaSvitu + (krokZrychlovani * nasobitelZaporneBody);
 
   kdyz (score <= 0) { score = 0; }  // Score nemuze byt mene nez 0
   
@@ -87,25 +102,45 @@ procedura zapoctiChybu() {
 }
 
 
-procedura stisk () {
- //ochrana proti zákmitům - je to legitimni stisk
- zakazVyrusovani ();
- cas tedMicros = micros(); //neresim moznost preteceni, v praxi nezpůsobuje potíže
- cislo stav = prectiPin(pinTlacitka);
- kdyz (stav == VYPNUTO) {
-   kdyz ((tedMicros - lastMicros) > okamzik) { 
-    lastMicros = tedMicros;
-    kdyz (sviti) {
-      zapoctiTrefu();
-    } jinak {
-      zapoctiChybu();
+// zkontroluj jestli se prave zmacklo tlacitko a jestli jo
+// zapocti chybu nebo trefu.
+
+procedura obsluzTlacitko() {
+
+  cas ted = millis();  // promennou "ted" nastav na aktualni cas
+
+  kdyz (posledniKontrolaTlacitka + periodaKontrolyTlacitka > ted) {
+
+    cislo soucasnyStavTlacitka = prectiPin(pinTlacitka);
+    
+    kdyz ((posledniStavTlacitka == VYPNUTO) && (soucasnyStavTlacitka == ZAPNUTO))  {  // nekdo to od posledni kontroly zmacknul    
+        kdyz (sviti) {
+          zapoctiTrefu();
+        } jinak {
+          zapoctiChybu();
+        }
     }
-   }
- }
+
+    posledniStavTlacitka = soucasnyStavTlacitka;
+    posledniKontrolaTlacitka = ted;  
+  }
 }
 
-// Zavolá se sama od sebe když se to zapne
+cas posledniBliknuti = 0;
+
+procedura obsluzBlikani() {
+
+  cas ted = millis();  // promennou "ted" nastav na aktualni cas
+
+  kdyz (posledniBliknuti + dobaSvitu > ted) {
+    prepniDiodu();
+  }
+  
+}
+
+// Zavolá se samo od sebe když se to zapne
 procedura nastavTo() {
+  
   nastavPin(pinTlacitka, VSTUP_S_VNITRNIM_ODPOREM);
   for (cislo i=pinNejnizsiDiodaScore; i<=pinNejvyssiDiodaScore; i++) {
     nastavPin(i, VYSTUP);
@@ -114,20 +149,14 @@ procedura nastavTo() {
   predstavSe ();
   score = 0;
   zhasniScore();
-  zakazVyrusovani ();
-  nastavObsluhuVyrusovaniProPin(pinTlacitka, stisk);  // Zavolej stisk kdyz te vyrusi pin pinTlacitka
+  
 }
 
-// Volá se sama od sebe pořád dokola (ale až potom co zkončí nastavTo)
+// Volá se samo od sebe pořád dokola (ale až potom co se to nastavi)
 procedura delejTo() {
- rozsvitDiodu(); 
- sviti = pravda;
- povolVyrusovani();
- cekej(dobaSvitu);
- 
- zhasniDiodu(); 
- sviti = nepravda;  
- povolVyrusovani();
- cekej(dobaSvitu);
+  
+ obsluzTlacitko();
+ obsluzBlikani();
+
 }
 
