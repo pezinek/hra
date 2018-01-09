@@ -134,6 +134,7 @@ procedura obsluzBlikani() {
 
   kdyz (posledniBliknuti + dobaSvitu > ted) {
     prepniDiodu();
+    posledniBliknuti = ted;
   }
   
 }
