@@ -18,6 +18,7 @@ tvrzeni sviti = nepravda; // jestli dioda právě ted svítí
 cislo dobaSvitu = 1000; // v ms - doba svitu diody, zároveň je doba mezery blikání
 cas posledniKontrolaTlacitka = 0; // cas kdy se naposledy kontrolovalo zmacknuti tlacitka
 cislo posledniStavTlacitka = VYPNUTO;  // posledni znamy stav tlacitka
+cas posledniBliknuti = 0; // kdy naposledy se prepnula svitici dioda
 
 
 procedura rozsvitDiodu() { 
@@ -124,8 +125,6 @@ procedura obsluzTlacitko() {
     posledniKontrolaTlacitka = ted;  
   }
 }
-
-cas posledniBliknuti = 0;
 
 procedura obsluzBlikani() {
 
