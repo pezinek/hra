@@ -109,7 +109,7 @@ procedura obsluzTlacitko() {
 
   cas ted = millis();  // promennou "ted" nastav na aktualni cas
 
-  kdyz (posledniKontrolaTlacitka + periodaKontrolyTlacitka > ted) {
+  kdyz (posledniKontrolaTlacitka + periodaKontrolyTlacitka < ted) {
 
     cislo soucasnyStavTlacitka = prectiPin(pinTlacitka);
     
@@ -130,7 +130,7 @@ procedura obsluzBlikani() {
 
   cas ted = millis();  // promennou "ted" nastav na aktualni cas
 
-  kdyz (posledniBliknuti + dobaSvitu > ted) {
+  kdyz (posledniBliknuti + dobaSvitu < ted) {
     prepniDiodu();
     posledniBliknuti = ted;
   }
