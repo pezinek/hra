@@ -2,7 +2,7 @@
 #include "zjednoduseni.h"
 
 // konstanty
-konstanta pinBlikaciDiody = 13;
+konstanta pinBlikaciDiody = LED_BUILTIN;  // vestavena LED, na arduinu pin 13
 konstanta pinTlacitka = 2;
 konstanta pinNejnizsiDiodaScore = 3; // první dioda, která zobrazuje score
 konstanta pinNejvyssiDiodaScore = 12; // poslední dioda, která zobrazuje score
@@ -44,8 +44,10 @@ procedura zhasniScore () {
 }
 
 procedura predstavSe () {
-  for (score = 0; score <= 10; score++) {rozsvitScoreJednouPosouvajiciSeDiodou(); cekej(20);};
-  for (score = 10; score >= 0; score--) {rozsvitScoreJednouPosouvajiciSeDiodou(); cekej(20);};
+  konstanta maximalniScore = pinNejvyssiDiodaScore - pinNejnizsiDiodaScore;
+  // bacha score se meni i uvnitr procedury rozsvitScoreJednouPosouvajiciSeDiodou
+  for (score = 0; score <= maximalniScore; score++) {rozsvitScoreJednouPosouvajiciSeDiodou(); cekej(20);};
+  for (score = maximalniScore; score >= 0; score--) {rozsvitScoreJednouPosouvajiciSeDiodou(); cekej(20);};
 }
 
 // jedna možnost jak ukázat score
@@ -139,15 +141,23 @@ procedura obsluzBlikani() {
 
 // Zavolá se samo od sebe když se to zapne
 procedura nastavTo() {
+
+  nastavRychlostPsaniNapisu(115200);
+  napis("[hra 0.1]");
   
   nastavPin(pinTlacitka, VSTUP_S_VNITRNIM_ODPOREM);
   for (cislo i=pinNejnizsiDiodaScore; i<=pinNejvyssiDiodaScore; i++) {
     nastavPin(i, VYSTUP);
   };
   nastavPin(pinBlikaciDiody, VYSTUP);
-  predstavSe ();
+
+  posledniStavTlacitka = prectiPin(pinTlacitka); // aby hned po zapnuti nebyla chyba
+  
+  napis("priprav se ...");
+  predstavSe();
   score = 0;
   zhasniScore();
+  napis("... hrajem !");
   
 }
 
