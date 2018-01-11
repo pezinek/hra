@@ -6,16 +6,17 @@ konstanta pinBlikaciDiody = LED_BUILTIN;  // vestavena LED, na arduinu pin 13
 konstanta pinTlacitka = 2;
 konstanta pinNejnizsiDiodaScore = 3; // první dioda, která zobrazuje score
 konstanta pinNejvyssiDiodaScore = 12; // poslední dioda, která zobrazuje score
-konstanta krokZrychlovani = 50; // ms - dioda bliká s lineárním zrychlením, s každým bodem o krokZrychlovani dolu
+konstanta krokZrychlovani = 25; // ms - dioda bliká s lineárním zrychlením, s každým bodem o krokZrychlovani dolu
+konstanta nejvetsiCas = 1000; //ms - nejvetsi cas, ktery dioda sviti. Nad toto nejde nezavisle na score
 konstanta nejmensiCas = 200; //ms - nejmenší čas, který dioda svítí. Pod toto nejde nezávisle na score
-konstanta kladneBody = 1; // o kolik bodů se zvýší score při trefě do svitu diody
-konstanta nasobitelZaporneBody = 3; // body budes ztracet 3x rychleji nez ziskavat
-cas periodaKontrolyTlacitka = 100; // ms - jak casto kontrolovat jestli je zmacknuto tlacitko
+konstanta bodyZaTrefu = 1;  // o kolik bodů se zvýší score při trefě do svitu diody
+konstanta bodyZaChybu = 3; // body budes ztracet 3x rychleji nez ziskavat
+cas periodaKontrolyTlacitka = 10; // ms - jak casto kontrolovat jestli je zmacknuto tlacitko
 
 // promenne
 cislo score = 0; // score na chvilku může klesout pod 0 - divné, ale mám tak udělané spíše pro jednoduchost kódu
 tvrzeni sviti = nepravda; // jestli dioda právě ted svítí
-cislo dobaSvitu = 1000; // v ms - doba svitu diody, zároveň je doba mezery blikání
+cislo dobaSvitu = nejvetsiCas; // v ms - doba svitu diody, zároveň je doba mezery blikání
 cas posledniKontrolaTlacitka = 0; // cas kdy se naposledy kontrolovalo zmacknuti tlacitka
 cislo posledniStavTlacitka = VYPNUTO;  // posledni znamy stav tlacitka
 cas posledniBliknuti = 0; // kdy naposledy se prepnula svitici dioda
@@ -44,10 +45,9 @@ procedura zhasniScore () {
 }
 
 procedura predstavSe () {
-  konstanta maximalniScore = pinNejvyssiDiodaScore - pinNejnizsiDiodaScore;
-  // bacha score se meni i uvnitr procedury rozsvitScoreJednouPosouvajiciSeDiodou
-  for (score = 0; score <= maximalniScore; score++) {rozsvitScoreJednouPosouvajiciSeDiodou(); cekej(20);};
-  for (score = maximalniScore; score >= 0; score--) {rozsvitScoreJednouPosouvajiciSeDiodou(); cekej(20);};
+  konstanta maximalniScore = pinNejvyssiDiodaScore - pinNejnizsiDiodaScore + 1;
+  for (score = 1; score <= maximalniScore; score++) {rozsvitScoreJednouPosouvajiciSeDiodou(); cekej(50);};
+  for (score = maximalniScore; score >= 1; score--) {rozsvitScoreJednouPosouvajiciSeDiodou(); cekej(50);};
 }
 
 // jedna možnost jak ukázat score
@@ -67,40 +67,51 @@ procedura rozsvitScoreVeDvojkoveSoustave () {
 
 // druhá možnost jak ukázat score
 procedura rozsvitScoreJednouPosouvajiciSeDiodou () {
-  zhasniScore();
-  konstanta maximalniScore = pinNejvyssiDiodaScore - pinNejnizsiDiodaScore;
-  kdyz (score > maximalniScore) {score = 1;};
-  zapni(pinNejnizsiDiodaScore + score);
+  
+  konstanta maximalniScore = pinNejvyssiDiodaScore - pinNejnizsiDiodaScore + 1;
+  cislo skorovaciDioda = score % maximalniScore; // zbytek po deleni
+
+  zhasniScore();  
+  kdyz (skorovaciDioda > 0) {
+    zapni(pinNejnizsiDiodaScore + skorovaciDioda - 1);
+  } jinak {
+    kdyz (score > 0) {
+      zapni(pinNejvyssiDiodaScore);
+    }
+  }
 }
 
 procedura rozsvitScore () {
   kdyz (score < 0) {score = 0;};
   //rozsvitScoreJednouPosouvajiciSeDiodou ();
   rozsvitScoreVeDvojkoveSoustave ();
+
+  kusNapisu("Score: ");
+  napis(score);
 }
 
 // složitější  funkce, které už jsou k věci
 
 procedura zapoctiTrefu() {
-  score = score + kladneBody;
-  dobaSvitu = dobaSvitu - krokZrychlovani;
-  kdyz (dobaSvitu <= nejmensiCas) {dobaSvitu = nejmensiCas;};
-  
+  score = score + bodyZaTrefu;
+
+  napis("trefa ");  
   rozsvitScore ();
-  napis("trefa ");
-  napis(score);
-  
 }
 
 procedura zapoctiChybu() {
-  score = score - (kladneBody * nasobitelZaporneBody);
-  dobaSvitu = dobaSvitu + (krokZrychlovani * nasobitelZaporneBody);
-
+  score = score - bodyZaChybu;
   kdyz (score <= 0) { score = 0; }  // Score nemuze byt mene nez 0
-  
+
+  napis("chyba ");  
   rozsvitScore ();
-  napis("chyba ");
-  napis(score);  
+}
+
+// zrychli nebo zpomal blikani podle score
+
+procedura upravRychlostBlikani() {
+  dobaSvitu = nejvetsiCas - score * krokZrychlovani;
+  kdyz (dobaSvitu <= nejmensiCas) {dobaSvitu = nejmensiCas;}
 }
 
 
@@ -121,12 +132,15 @@ procedura obsluzTlacitko() {
         } jinak {
           zapoctiChybu();
         }
+        upravRychlostBlikani();
     }
 
     posledniStavTlacitka = soucasnyStavTlacitka;
     posledniKontrolaTlacitka = ted;  
   }
 }
+
+// zhasni nebo rozsvit diodu kdyz je cas
 
 procedura obsluzBlikani() {
 
@@ -143,7 +157,7 @@ procedura obsluzBlikani() {
 procedura nastavTo() {
 
   nastavRychlostPsaniNapisu(115200);
-  napis("[hra 0.1]");
+  napis("[postreh 1.0]");
   
   nastavPin(pinTlacitka, VSTUP_S_VNITRNIM_ODPOREM);
   for (cislo i=pinNejnizsiDiodaScore; i<=pinNejvyssiDiodaScore; i++) {

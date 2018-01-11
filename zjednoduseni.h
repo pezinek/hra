@@ -30,6 +30,7 @@
 #define kdyz if
 #define jinak else
 #define napis Serial.println
+#define kusNapisu Serial.print
 #define nastavRychlostPsaniNapisu Serial.begin
 #define zakazVyrusovani noInterrupts
 #define povolVyrusovani interrupts
